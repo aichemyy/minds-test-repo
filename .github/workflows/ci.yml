@@ -1,6 +1,6 @@
 
 name: CI
-run-name: Minds integration 1791113804444
+run-name: Minds integration 1791113944842
 on: [push, pull_request]
 jobs:
   test:
