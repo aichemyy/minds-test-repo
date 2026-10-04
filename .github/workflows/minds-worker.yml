@@ -1,0 +1,63 @@
+name: Minds Worker
+on:
+  workflow_dispatch:
+    inputs:
+      task_id:
+        description: "Task ID"
+        required: true
+        type: string
+      execution_id:
+        description: "Execution ID"
+        required: true
+        type: string
+      event_type:
+        description: "Event type (github.ci.failed, github.pull_request.opened, user.message)"
+        required: true
+        type: string
+      payload:
+        description: "JSON payload for the task"
+        required: true
+        type: string
+      minds_server_url:
+        description: "Minds server URL for callback"
+        required: true
+        type: string
+
+jobs:
+  execute:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Checkout Minds worker code
+        uses: actions/checkout@v4
+        with:
+          repository: grok08/minds
+          ref: main
+          path: minds-runtime
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: 1.4.2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+        working-directory: minds-runtime
+
+      - name: Execute worker task
+        env:
+          TASK_ID: ${{ github.event.inputs.task_id }}
+          EXECUTION_ID: ${{ github.event.inputs.execution_id }}
+          EVENT_TYPE: ${{ github.event.inputs.event_type }}
+          PAYLOAD: ${{ github.event.inputs.payload }}
+          MINDS_SERVER_URL: ${{ github.event.inputs.minds_server_url }}
+          MINDS_CALLBACK_SECRET: ${{ secrets.MINDS_CALLBACK_SECRET }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          bun run packages/providers/github-worker/worker.ts
+        working-directory: minds-runtime
